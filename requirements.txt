@@ -7,7 +7,7 @@ pyarrow==14.0.2
 
 # Database connectors
 psycopg2-binary==2.9.9
-sqlalchemy==2.0.23
+sqlalchemy==1.4.52
 duckdb==0.9.2
 
 # dbt
