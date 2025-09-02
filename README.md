@@ -1,4 +1,4 @@
-# Personal Finance Data Platform (FinDataOps)
+# Personal Finance Data Platform 
 
 A complete, production-ready personal finance data platform that ingests raw transaction exports, processes them through a modern data stack, and delivers actionable insights through analytics and forecasting.
 
