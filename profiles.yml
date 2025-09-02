@@ -1,0 +1,25 @@
+finops:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: finops_user
+      password: finops_password
+      port: 5432
+      dbname: finops
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+      search_path: public
+    prod:
+      type: postgres
+      host: localhost
+      user: finops_user
+      password: finops_password
+      port: 5432
+      dbname: finops
+      schema: public
+      threads: 8
+      keepalives_idle: 0
+      search_path: public 

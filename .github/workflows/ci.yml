@@ -1,0 +1,181 @@
+name: Personal Finance Data Platform CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finops_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov black isort flake8 mypy
+    
+    - name: Lint with black
+      run: |
+        black --check --diff .
+    
+    - name: Lint with isort
+      run: |
+        isort --check-only --diff .
+    
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Type check with mypy
+      run: |
+        mypy scripts/ --ignore-missing-imports
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finops_test
+      run: |
+        pytest tests/ --cov=scripts --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  dbt:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finops_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dbt
+      run: |
+        pip install dbt-core dbt-postgres
+    
+    - name: Run dbt tests
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finops_test
+      run: |
+        cd dbt
+        dbt deps
+        dbt test
+    
+    - name: Build dbt docs
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finops_test
+      run: |
+        cd dbt
+        dbt docs generate
+    
+    - name: Upload dbt docs
+      uses: actions/upload-artifact@v3
+      with:
+        name: dbt-docs
+        path: dbt/target/
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Bandit security scan
+      run: |
+        pip install bandit
+        bandit -r scripts/ -f json -o bandit-report.json || true
+    
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-report
+        path: bandit-report.json
+
+  build:
+    needs: [test, dbt, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push Docker images
+      run: |
+        docker build -t finops-api:latest ./api
+        docker build -t finops-airflow:latest .
+        docker tag finops-api:latest ${{ secrets.DOCKER_USERNAME }}/finops-api:latest
+        docker tag finops-airflow:latest ${{ secrets.DOCKER_USERNAME }}/finops-airflow:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/finops-api:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/finops-airflow:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deployment would happen here"
+        echo "This could trigger deployment to cloud infrastructure"
+        echo "Or update production Docker Compose files" 

@@ -1,0 +1,44 @@
+# Personal Finance Data Platform Requirements
+
+# Core data processing
+pandas==2.1.4
+numpy==1.25.2
+pyarrow==14.0.2
+
+# Database connectors
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+duckdb==0.9.2
+
+# dbt
+dbt-core==1.7.3
+dbt-postgres==1.7.3
+
+# Great Expectations
+great-expectations==0.18.11
+
+# Airflow
+apache-airflow==2.7.1
+apache-airflow-providers-postgres==5.7.1
+
+# FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# Data quality and validation
+great-expectations==0.18.11
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7
+rich==13.7.0
+tabulate==0.9.0
+
+# Development tools
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1 

@@ -1,0 +1,94 @@
+version: 2
+
+sources:
+  - name: raw
+    database: finops
+    schema: raw
+    tables:
+      - name: transactions
+        description: "Raw transaction data from various financial institutions"
+        columns:
+          - name: txn_id
+            description: "Unique transaction identifier (hashed)"
+            tests:
+              - not_null
+              - unique
+          - name: institution
+            description: "Financial institution name"
+            tests:
+              - not_null
+          - name: account_id
+            description: "Account identifier within the institution"
+            tests:
+              - not_null
+          - name: posted_at
+            description: "Transaction posting timestamp"
+            tests:
+              - not_null
+          - name: amount
+            description: "Transaction amount (positive for income, negative for expenses)"
+            tests:
+              - not_null
+          - name: currency
+            description: "Transaction currency code"
+            tests:
+              - not_null
+          - name: merchant_raw
+            description: "Raw merchant name as provided by institution"
+          - name: mcc
+            description: "Merchant category code"
+          - name: category_raw
+            description: "Raw category as provided by institution"
+          - name: city
+            description: "Transaction city"
+          - name: state
+            description: "Transaction state"
+          - name: country
+            description: "Transaction country"
+          - name: channel
+            description: "Transaction channel (POS, ecommerce, ACH, etc.)"
+          - name: description
+            description: "Transaction description"
+          - name: import_batch_id
+            description: "Batch identifier for the import process"
+            tests:
+              - not_null
+          - name: created_at
+            description: "Record creation timestamp"
+            tests:
+              - not_null
+
+  - name: core
+    database: finops
+    schema: core
+    tables:
+      - name: accounts
+        description: "Account information from various institutions"
+        columns:
+          - name: account_id
+            description: "Unique account identifier"
+            tests:
+              - not_null
+              - unique
+          - name: institution
+            description: "Financial institution name"
+            tests:
+              - not_null
+          - name: type
+            description: "Account type (checking, savings, credit, brokerage)"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['checking', 'savings', 'credit', 'brokerage']
+          - name: open_dt
+            description: "Account opening date"
+          - name: close_dt
+            description: "Account closing date"
+          - name: currency
+            description: "Account currency"
+            tests:
+              - not_null
+          - name: created_at
+            description: "Record creation timestamp"
+            tests:
+              - not_null 
