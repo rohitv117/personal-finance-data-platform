@@ -1,0 +1,21 @@
+rule_id,pattern,merchant_clean,mcc,category_std,risk_flag,priority
+1,AMAZON,Amazon,5999,Online Shopping,false,1
+2,STARBUCKS,Starbucks,5814,Food & Dining,false,1
+3,NETFLIX,Netflix,7841,Entertainment,false,1
+4,SPOTIFY,Spotify,7841,Entertainment,false,1
+5,UBER,Uber,4121,Transportation,false,1
+6,LYFT,Lyft,4121,Transportation,false,1
+7,APPLE,Apple,5732,Technology,false,1
+8,GOOGLE,Google,5732,Technology,false,1
+9,MICROSOFT,Microsoft,5732,Technology,false,1
+10,ADOBE,Adobe,5732,Technology,false,1
+11,TRANSFER,Transfer,6010,Transfers,false,2
+12,PAYMENT,Payment,6010,Transfers,false,2
+13,REFUND,Refund,6010,Transfers,false,2
+14,ATM,ATM Withdrawal,6011,Cash,false,2
+15,DEPOSIT,Deposit,6010,Income,false,2
+16,SALARY,Salary,6010,Income,false,2
+17,BONUS,Bonus,6010,Income,false,2
+18,INTEREST,Interest,6010,Income,false,2
+19,DIVIDEND,Dividend,6010,Investment,false,2
+20,CREDIT CARD,Credit Card Payment,6010,Debt Payment,false,2

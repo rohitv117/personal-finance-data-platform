@@ -1,0 +1,175 @@
+version: 2
+
+models:
+  - name: fct_cashflow_daily
+    description: "Daily cashflow metrics with rolling averages and trends"
+    columns:
+      - name: date
+        description: "Transaction date"
+        tests:
+          - not_null
+          - unique
+      - name: account_id
+        description: "Account identifier"
+        tests:
+          - not_null
+      - name: income
+        description: "Daily income amount"
+        tests:
+          - not_null
+      - name: expenses
+        description: "Daily expenses amount"
+        tests:
+          - not_null
+      - name: savings_rate
+        description: "Daily savings rate (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+  - name: fct_cashflow_monthly
+    description: "Monthly cashflow metrics with period-over-period changes"
+    columns:
+      - name: month
+        description: "Month in YYYY-MM format"
+        tests:
+          - not_null
+          - unique
+      - name: income
+        description: "Monthly income amount"
+        tests:
+          - not_null
+      - name: expenses
+        description: "Monthly expenses amount"
+        tests:
+          - not_null
+      - name: savings_rate
+        description: "Monthly savings rate (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+  - name: fct_net_worth
+    description: "Daily net worth tracking with asset/liability breakdown"
+    columns:
+      - name: date
+        description: "Net worth date"
+        tests:
+          - not_null
+          - unique
+      - name: net_worth
+        description: "Total net worth"
+        tests:
+          - not_null
+      - name: total_assets
+        description: "Total assets"
+        tests:
+          - not_null
+      - name: total_liabilities
+        description: "Total liabilities"
+        tests:
+          - not_null
+
+  - name: fct_budget_vs_actual
+    description: "Budget variance analysis by category and month"
+    columns:
+      - name: month
+        description: "Month in YYYY-MM format"
+        tests:
+          - not_null
+      - name: category_name
+        description: "Expense category name"
+        tests:
+          - not_null
+      - name: budget_target
+        description: "Budget target amount"
+        tests:
+          - not_null
+      - name: actual_expenses
+        description: "Actual expenses amount"
+        tests:
+          - not_null
+      - name: variance
+        description: "Budget variance (actual - budget)"
+        tests:
+          - not_null
+
+  - name: fct_recurring
+    description: "Recurring transaction detection and tracking"
+    columns:
+      - name: merchant_name
+        description: "Normalized merchant name"
+        tests:
+          - not_null
+      - name: recurring_type
+        description: "Type of recurring pattern"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['monthly', 'weekly', 'quarterly', 'yearly', 'likely_monthly', 'likely_weekly', 'irregular']
+      - name: confidence_score
+        description: "Confidence score for recurring detection (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+  - name: fct_anomalies
+    description: "Anomaly detection results with scoring and explanations"
+    columns:
+      - name: txn_id
+        description: "Transaction identifier"
+        tests:
+          - not_null
+          - unique
+      - name: anomaly_score
+        description: "Composite anomaly score (0-100)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: severity
+        description: "Anomaly severity level"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['high', 'medium', 'low', 'minimal']
+      - name: anomaly_type
+        description: "Type of anomaly detected"
+        tests:
+          - not_null
+
+  - name: fct_forecasts
+    description: "Financial forecasts with confidence intervals"
+    columns:
+      - name: forecast_date
+        description: "Forecast date"
+        tests:
+          - not_null
+      - name: forecast_type
+        description: "Type of forecast (total/category)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['total', 'category']
+      - name: category_name
+        description: "Category name for category forecasts"
+        tests:
+          - not_null
+      - name: forecast_amount
+        description: "Forecasted amount"
+        tests:
+          - not_null
+      - name: confidence_level
+        description: "Forecast confidence level (0-1)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1

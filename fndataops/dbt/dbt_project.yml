@@ -1,0 +1,80 @@
+name: 'fndataops'
+version: '1.0.0'
+config-version: 2
+
+profile: 'fndataops'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  fndataops:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+      fct_cashflow_daily:
+        +materialized: incremental
+        +unique_key: "date || '_' || account_id"
+        +on_schema_change: "append_new_columns"
+      fct_cashflow_monthly:
+        +materialized: incremental
+        +unique_key: "month || '_' || account_id"
+        +on_schema_change: "append_new_columns"
+      fct_net_worth:
+        +materialized: incremental
+        +unique_key: date
+        +on_schema_change: "append_new_columns"
+      fct_budget_vs_actual:
+        +materialized: incremental
+        +unique_key: "month || '_' || category_name"
+        +on_schema_change: "append_new_columns"
+      fct_recurring:
+        +materialized: incremental
+        +unique_key: "merchant_name || '_' || account_id"
+        +on_schema_change: "append_new_columns"
+      fct_anomalies:
+        +materialized: incremental
+        +unique_key: txn_id
+        +on_schema_change: "append_new_columns"
+      fct_forecasts:
+        +materialized: incremental
+        +unique_key: "forecast_date || '_' || forecast_type || '_' || category_name"
+        +on_schema_change: "append_new_columns"
+
+seeds:
+  fndataops:
+    +schema: ref
+    ref_merchant_rules:
+      +column_types:
+        rule_id: integer
+        priority: integer
+    ref_categories:
+      +column_types:
+        category_id: integer
+        parent_id: integer
+    ref_fx_rates:
+      +column_types:
+        date: date
+        usd_to_eur: decimal(10,6)
+        usd_to_gbp: decimal(10,6)
+        usd_to_cad: decimal(10,6)
+        usd_to_aud: decimal(10,6)
+
+vars:
+  currency: "USD"
+  timezone: "UTC"
+  forecast_horizon_months: 3
+  anomaly_threshold: 20
+  budget_variance_threshold: 0.1

@@ -1,0 +1,352 @@
+name: FinDataOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  DBT_VERSION: '1.7.0'
+  GREAT_EXPECTATIONS_VERSION: '0.18.0'
+
+jobs:
+  lint-and-format:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 ruff
+          pip install -r requirements.txt
+
+      - name: Run Black formatter
+        run: black --check --diff .
+
+      - name: Run isort
+        run: isort --check-only --diff .
+
+      - name: Run Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Ruff
+        run: ruff check . --output-format=github
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_finops
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_finops
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  dbt-build-and-test:
+    name: dbt Build and Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finops
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-postgres==${{ env.DBT_VERSION }}
+
+      - name: Install dbt dependencies
+        run: |
+          cd dbt
+          dbt deps
+
+      - name: Create dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          cp dbt/profiles.yml ~/.dbt/profiles.yml
+
+      - name: Run dbt seed
+        run: |
+          cd dbt
+          dbt seed
+
+      - name: Run dbt build
+        run: |
+          cd dbt
+          dbt build --full-refresh
+
+      - name: Run dbt test
+        run: |
+          cd dbt
+          dbt test
+
+      - name: Generate dbt docs
+        run: |
+          cd dbt
+          dbt docs generate
+
+      - name: Upload dbt artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-artifacts
+          path: dbt/target/
+          retention-days: 30
+
+  great-expectations-validation:
+    name: Great Expectations Validation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finops
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install great-expectations==${{ env.GREAT_EXPECTATIONS_VERSION }}
+          pip install psycopg2-binary
+
+      - name: Initialize Great Expectations
+        run: |
+          cd dq
+          great_expectations init
+
+      - name: Run Great Expectations validation
+        run: |
+          cd dq
+          great_expectations checkpoint run raw_data_checkpoint
+          great_expectations checkpoint run staging_data_checkpoint
+          great_expectations checkpoint run marts_data_checkpoint
+
+      - name: Upload GE artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ge-artifacts
+          path: dq/great_expectations/uncommitted/
+          retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+
+      - name: Run Bandit security scan
+        run: bandit -r . -f json -o bandit-report.json
+
+      - name: Run Safety vulnerability scan
+        run: safety check --json --output safety-report.json
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+          retention-days: 30
+
+  build-containers:
+    name: Build Containers
+    runs-on: ubuntu-latest
+    needs: [lint-and-format, unit-tests, dbt-build-and-test, great-expectations-validation]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API container
+        run: |
+          docker build -t finops-api:latest ./api
+
+      - name: Build Airflow container
+        run: |
+          docker build -t finops-airflow:latest ./orchestration
+
+      - name: Save API container
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-container
+          path: /tmp/api-container.tar
+          retention-days: 7
+
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finops
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install jupyter
+
+      - name: Generate test data
+        run: |
+          python scripts/data_generator.py --transactions 10000 --institutions 3
+
+      - name: Run performance benchmarks
+        run: |
+          jupyter nbconvert --execute --to notebook notebooks/performance_benchmarks.ipynb
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: notebooks/performance_benchmarks.ipynb
+          retention-days: 30
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-containers, performance-benchmark]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add actual deployment steps here
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-containers, performance-benchmark]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add actual deployment steps here
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [lint-and-format, unit-tests, dbt-build-and-test, great-expectations-validation, security-scan]
+    if: always()
+    steps:
+      - name: Notify on success
+        if: ${{ needs.lint-and-format.result == 'success' && needs.unit-tests.result == 'success' && needs.dbt-build-and-test.result == 'success' && needs.great-expectations-validation.result == 'success' && needs.security-scan.result == 'success' }}
+        run: |
+          echo "All checks passed! Pipeline successful."
+
+      - name: Notify on failure
+        if: ${{ needs.lint-and-format.result == 'failure' || needs.unit-tests.result == 'failure' || needs.dbt-build-and-test.result == 'failure' || needs.great-expectations-validation.result == 'failure' || needs.security-scan.result == 'failure' }}
+        run: |
+          echo "Pipeline failed! Check the logs for details."

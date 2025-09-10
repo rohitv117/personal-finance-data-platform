@@ -1,0 +1,30 @@
+category_id,parent_id,name,budget_group,is_income
+1,,Income,Income,true
+2,1,Salary,Income,true
+3,1,Bonus,Income,true
+4,1,Interest,Income,true
+5,1,Dividend,Income,true
+6,1,Investment Gains,Income,true
+7,,Expenses,Expenses,false
+8,7,Food & Dining,Expenses,false
+9,7,Groceries,Expenses,false
+10,7,Restaurants,Expenses,false
+11,7,Transportation,Expenses,false
+12,7,Gas,Expenses,false
+13,7,Public Transit,Expenses,false
+14,7,Entertainment,Expenses,false
+15,7,Streaming,Expenses,false
+16,7,Technology,Expenses,false
+17,7,Software,Expenses,false
+18,7,Hardware,Expenses,false
+19,7,Healthcare,Expenses,false
+20,7,Insurance,Expenses,false
+21,7,Utilities,Expenses,false
+22,7,Rent/Mortgage,Expenses,false
+23,7,Online Shopping,Expenses,false
+24,7,Clothing,Expenses,false
+25,7,Transfers,Transfers,false
+26,7,Cash,Transfers,false
+27,7,Debt Payment,Debt,false
+28,7,Investment,Investment,false
+29,7,Other,Other,false

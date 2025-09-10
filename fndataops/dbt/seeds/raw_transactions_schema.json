@@ -1,0 +1,67 @@
+{
+  "type": "object",
+  "properties": {
+    "txn_id": {
+      "type": "string",
+      "description": "Hash of institution + date + amount + normalized text",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["bank", "card", "brokerage"],
+      "description": "Data source institution type"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "Account identifier from source"
+    },
+    "posted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transaction posted timestamp (tz-aware)"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount (signed)"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 currency code"
+    },
+    "merchant_raw": {
+      "type": "string",
+      "description": "Raw merchant name from source"
+    },
+    "mcc_raw": {
+      "type": "string",
+      "description": "Raw merchant category code"
+    },
+    "description_raw": {
+      "type": "string",
+      "description": "Raw transaction description"
+    },
+    "category_raw": {
+      "type": "string",
+      "description": "Raw category from source"
+    },
+    "counterparty_raw": {
+      "type": "string",
+      "description": "Raw counterparty information"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Account balance after transaction"
+    },
+    "hash_raw": {
+      "type": "string",
+      "description": "Hash of raw transaction data for deduplication"
+    },
+    "ingest_batch_id": {
+      "type": "string",
+      "description": "Batch identifier for ingestion tracking"
+    }
+  },
+  "required": ["txn_id", "source", "account_id", "posted_at", "amount", "currency"],
+  "additionalProperties": false
+}
