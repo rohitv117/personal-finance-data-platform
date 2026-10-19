@@ -2,13 +2,15 @@ version: 2
 
 models:
   - name: fct_cashflow_daily
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [date, account_id, source]
     description: "Daily cashflow metrics with rolling averages and trends"
     columns:
       - name: date
         description: "Transaction date"
         tests:
           - not_null
-          - unique
       - name: account_id
         description: "Account identifier"
         tests:
@@ -26,17 +28,18 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
               max_value: 1
 
   - name: fct_cashflow_monthly
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [month, account_id, source]
     description: "Monthly cashflow metrics with period-over-period changes"
     columns:
       - name: month
         description: "Month in YYYY-MM format"
         tests:
           - not_null
-          - unique
       - name: income
         description: "Monthly income amount"
         tests:
@@ -50,7 +53,6 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
               max_value: 1
 
   - name: fct_net_worth

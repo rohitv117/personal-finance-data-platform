@@ -1,0 +1,16 @@
+# Focused dependencies for the checks below; excludes Airflow and notebook runtimes.
+pandas==2.2.3
+numpy==1.26.4
+Faker==20.1.0
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+bandit==1.7.5
+pbr==6.1.1
+dbt-core==1.9.1
+dbt-postgres==1.9.1

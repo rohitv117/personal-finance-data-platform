@@ -1,12 +1,12 @@
 {{
   config(
     materialized='incremental',
-    unique_key="month || '_' || category_id::string"
+    unique_key=['month', 'category_id']
   )
 }}
 
 WITH category_totals AS (
-    SELECT 
+    SELECT
         month,
         category_norm,
         SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
@@ -19,22 +19,22 @@ WITH category_totals AS (
 ),
 
 category_budgets AS (
-    SELECT 
+    SELECT
         c.category_id,
         c.name as category_name,
         c.budget_group,
         -- Simple budget allocation based on category type
-        CASE 
+        CASE
             WHEN c.budget_group = 'Essential' THEN 2000.00
             WHEN c.budget_group = 'Discretionary' THEN 1000.00
             WHEN c.is_income THEN 0.00
             ELSE 500.00
         END as monthly_budget
-    FROM {{ ref('categories') }} c
+    FROM {{ ref('ref_categories') }} c
 ),
 
 monthly_actuals AS (
-    SELECT 
+    SELECT
         ct.month,
         ct.category_norm,
         ct.income,
@@ -43,7 +43,7 @@ monthly_actuals AS (
     FROM category_totals ct
 )
 
-SELECT 
+SELECT
     ma.month,
     cb.category_id,
     cb.category_name,
@@ -51,10 +51,10 @@ SELECT
     cb.monthly_budget as budget,
     ma.net_amount as actual,
     cb.monthly_budget - ma.net_amount as variance,
-    CASE 
-        WHEN cb.monthly_budget > 0 THEN 
+    CASE
+        WHEN cb.monthly_budget > 0 THEN
             ROUND((cb.monthly_budget - ma.net_amount) / cb.monthly_budget, 4)
-        ELSE 0 
+        ELSE 0
     END as variance_pct,
     ma.income,
     ma.expenses,
@@ -62,4 +62,4 @@ SELECT
 FROM monthly_actuals ma
 JOIN category_budgets cb ON ma.category_norm = cb.category_name
 WHERE cb.monthly_budget > 0  -- Only show categories with budgets
-ORDER BY ma.month, cb.budget_group, cb.category_name 
+ORDER BY ma.month, cb.budget_group, cb.category_name

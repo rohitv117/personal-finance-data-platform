@@ -6,7 +6,7 @@
 }}
 
 WITH monthly_totals AS (
-    SELECT 
+    SELECT
         month,
         SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
         SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
@@ -20,7 +20,7 @@ WITH monthly_totals AS (
 ),
 
 monthly_balances AS (
-    SELECT 
+    SELECT
         month,
         SUM(amount) as balance_delta
     FROM {{ ref('stg_transactions') }}
@@ -31,7 +31,7 @@ monthly_balances AS (
 ),
 
 monthly_averages AS (
-    SELECT 
+    SELECT
         month,
         AVG(CASE WHEN amount > 0 THEN amount ELSE NULL END) as avg_income,
         AVG(CASE WHEN amount < 0 THEN ABS(amount) ELSE NULL END) as avg_expense
@@ -42,16 +42,16 @@ monthly_averages AS (
     GROUP BY month
 )
 
-SELECT 
+SELECT
     mt.month,
     mt.income,
     mt.expenses,
     mt.transaction_count,
     mt.active_days,
-    CASE 
-        WHEN mt.income > 0 THEN 
+    CASE
+        WHEN mt.income > 0 THEN
             ROUND((mt.income - mt.expenses) / mt.income, 4)
-        ELSE 0 
+        ELSE 0
     END as savings_rate,
     mb.balance_delta,
     ma.avg_income,
@@ -60,4 +60,4 @@ SELECT
 FROM monthly_totals mt
 LEFT JOIN monthly_balances mb ON mt.month = mb.month
 LEFT JOIN monthly_averages ma ON mt.month = ma.month
-ORDER BY mt.month 
+ORDER BY mt.month
