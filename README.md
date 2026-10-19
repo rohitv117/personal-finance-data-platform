@@ -8,7 +8,7 @@ Uses synthetic data generated with `--transactions 100000`.
 
 - CSV extractors with normalization helpers and nine pytest unit tests.
 - Fourteen dbt models, including a USD staging view and thirteen analytical models for cashflow, budgets, recurring payments, anomalies, forecasts, and net worth.
-- Three reference seeds and 57 executable dbt data tests.
+- Three reference seeds and 60 executable dbt data tests.
 - A nine-task Airflow DAG with year/month Parquet partitioning code. Task count describes the code, not a verified successful DAG run.
 - Three Great Expectations suite builders containing 56 expectation declarations. CI does not execute these suites; the DAG's `run_ge_suites` function currently performs SQL checks rather than invoking GE.
 - GitHub Actions configuration for Black, isort, fatal flake8 checks, mypy on ingestion scripts, pytest, dbt build/tests and docs against PostgreSQL 15, and Bandit scans. See [Actions](https://github.com/rohitv117/personal-finance-data-platform/actions).

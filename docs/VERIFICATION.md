@@ -10,16 +10,16 @@ The root workflow referenced missing directories, nested workflows were ignored 
 
 - Nine pytest unit tests pass without import-related skips.
 - Black, isort, fatal flake8 checks, ingestion-script mypy, and Python syntax compilation pass.
-- dbt build against an isolated local PostgreSQL instance passes: fourteen models, three seeds, and 57 data tests. A subsequent incremental build also passes.
+- dbt build against an isolated local PostgreSQL instance passes: fourteen models, three seeds, and 60 data tests. A subsequent incremental build also passes.
 - dbt docs generation succeeds.
 - The 100K CLI command in the README produced exactly 100,000 rows with 100,000 distinct transaction IDs; the generated file was kept outside Git.
 - Bandit scans application/ingestion/orchestration/DQ/observability/security/fixture code and enforces medium/high severity. Scoped B608 exceptions cover fixed SQL fragments and identifiers; user-supplied filter values remain parameterized. Low severity findings are not a CI gate.
 
-Local Python was 3.12; GitHub CI uses Python 3.11 and PostgreSQL 15. Local results do not substitute for a green GitHub run. The workflow validates dbt using a small fixture, not full stack orchestration or GE execution.
+Local validation used Python 3.12.2 and PostgreSQL 14.18; GitHub CI uses Python 3.11 and PostgreSQL 15. Local results do not substitute for a green GitHub run. The workflow validates dbt using a small fixture, not full stack orchestration or GE execution.
 
 ## Count changes
 
-Original: thirteen dbt SQL model files and 58 generic test declarations. Repairs add the missing staging model, remove two incorrect date/month uniqueness declarations (the actual grain includes account/source), allow negative savings rates, and add the unsupported-currency singular test. Current executable count: fourteen models and 57 dbt tests. GE code contains 23 raw, 19 staging, and 14 mart expectation declarations, totaling 56; none are claimed as executed.
+Original: thirteen dbt SQL model files and 58 generic test declarations. Repairs add the missing staging model, remove two incorrect date/month uniqueness declarations (the actual grain includes account/source), allow negative savings rates, add the unsupported-currency singular test, restore uniqueness checks at the composite account/source grain, and add a transaction-count/income/expense reconciliation against raw data. Current executable count: fourteen models and 60 dbt tests. GE code contains 23 raw, 19 staging, and 14 mart expectation declarations, totaling 56; none are claimed as executed.
 
 ## Remaining integration work
 
@@ -28,3 +28,7 @@ The README records unverified Compose/Airflow/API/GE behavior, absent balance da
 ## Repository history review
 
 Reviewed all four reachable commits and 58 unique historical file blobs. No `.env`, private key, or Parquet filenames were tracked; high-confidence AWS access-key, GitHub token, and private-key-header patterns had no matches. Tracked CSVs are reference seeds. Sample local passwords remain in source and are not evidence of a production credential. This targeted scan cannot prove the absence of every possible secret or identify the provenance of arbitrary data.
+
+## Publishing status
+
+The repair branch could not be pushed: GitHub rejected the existing HTTPS credentials with an invalid username/token error. A fresh green Actions run, PR creation, status badge, repository description/topics, and profile pinning remain pending authenticated GitHub access. No AWS changes were made.
