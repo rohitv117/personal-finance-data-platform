@@ -1,340 +1,97 @@
 # Personal Finance Data Platform (FinDataOps)
 
-A complete, production-ready personal finance data platform that ingests raw transaction exports, processes them through a modern data stack, and delivers actionable insights through analytics and forecasting.
+A personal finance data engineering portfolio project using synthetic transactions, PostgreSQL, dbt, and Python. Airflow, Great Expectations, DuckDB export, and FastAPI components are included; the complete Docker Compose pipeline has not been verified end to end.
 
-## 🚀 Features
+Uses synthetic data generated with `--transactions 100000`.
 
-- **Multi-format Data Ingestion**: CSV, OFX, QFX bank exports with automatic standardization
-- **Modern Data Stack**: PostgreSQL → dbt → Parquet → DuckDB/ClickHouse
-- **Data Quality**: Great Expectations with automated validation and alerting
-- **Advanced Analytics**: Anomaly detection, forecasting, and trend analysis
-- **Orchestration**: Airflow DAGs for automated data pipeline management
-- **API Layer**: FastAPI for programmatic access to financial insights
-- **Privacy-First**: PII redaction, merchant hashing, and secure data handling
-- **Performance**: 10-30x speedup on analytical queries vs traditional databases
+## Verified scope
 
-## 🏗️ Architecture
+- CSV extractors with normalization helpers and nine pytest unit tests.
+- Fourteen dbt models, including a USD staging view and thirteen analytical models for cashflow, budgets, recurring payments, anomalies, forecasts, and net worth.
+- Three reference seeds and 57 executable dbt data tests.
+- A nine-task Airflow DAG with year/month Parquet partitioning code. Task count describes the code, not a verified successful DAG run.
+- Three Great Expectations suite builders containing 56 expectation declarations. CI does not execute these suites; the DAG's `run_ge_suites` function currently performs SQL checks rather than invoking GE.
+- GitHub Actions configuration for Black, isort, fatal flake8 checks, mypy on ingestion scripts, pytest, dbt build/tests and docs against PostgreSQL 15, and Bandit scans. See [Actions](https://github.com/rohitv117/personal-finance-data-platform/actions).
 
-```
-Raw Data (CSV/OFX) → PostgreSQL (Raw) → dbt (Transform) → Parquet (Marts) → DuckDB (Analytics) → BI Dashboards
-                                    ↓
-                            Great Expectations (DQ)
-                                    ↓
-                            Airflow (Orchestration)
-```
+There are no verified analytical speedup measurements, deployed AWS resources, OFX/QFX extractors, ClickHouse integration, or BI dashboards claimed here.
 
-### Data Flow
+## Run the verified checks
 
-1. **Extract**: Parse bank exports using intelligent extractors
-2. **Load**: Store raw data in PostgreSQL with proper indexing
-3. **Transform**: dbt models for staging, marts, and business logic
-4. **Quality**: Automated validation with Great Expectations
-5. **Analytics**: Fast querying with DuckDB on Parquet files
-6. **Insights**: Anomaly detection, forecasting, and reporting
-
-## 🛠️ Tech Stack
-
-- **Storage**: PostgreSQL 15, Parquet files, DuckDB
-- **Transform**: dbt Core 1.7+
-- **Orchestration**: Apache Airflow 2.7+
-- **Data Quality**: Great Expectations 0.18+
-- **API**: FastAPI, Pydantic
-- **Analytics**: Pandas, NumPy, statistical modeling
-- **Infrastructure**: Docker, docker-compose
-- **Monitoring**: Structured logging, metrics collection
-
-## 📊 Data Models
-
-### Core Tables
-
-- **`raw.transactions`**: Raw transaction data from all sources
-- **`staging.transactions`**: Normalized and enriched transactions
-- **`marts.mart_cashflow_daily/monthly`**: Aggregated cashflow metrics
-- **`marts.mart_budget_vs_actual`**: Budget variance analysis
-- **`marts.mart_recurring`**: Recurring transaction detection
-- **`marts.mart_anomalies`**: Flagged anomalies and outliers
-- **`marts.mart_forecasts`**: Expense and income forecasts
-
-### Reference Data
-
-- **`ref.categories`**: Hierarchical category classification
-- **`ref.merchant_rules`**: Pattern-based merchant normalization
-- **`ref.fx_rates`**: Currency conversion rates (optional)
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker and docker-compose
-- 8GB+ RAM available
-- Python 3.11+ (for local development)
-
-### 1. Clone and Setup
+Use Python 3.11 and PostgreSQL 15. Run from `fndataops/`:
 
 ```bash
-git clone <repository-url>
-cd personal-finance-data-platform
-cp env.example .env  # Configure environment variables
+git clone https://github.com/rohitv117/personal-finance-data-platform.git
+cd personal-finance-data-platform/fndataops
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-ci.txt
+black --check .
+isort --check-only .
+flake8 . --select=E9,F63,F7,F82 --show-source --statistics
+mypy ingest/scripts/ --ignore-missing-imports
+pytest tests/ --cov=ingest/scripts --cov-report=xml
+bandit -r ingest api orchestration dq observability security ci -ll
 ```
 
-### 2. Start the Platform
+Bandit fails on medium/high severity findings. Narrow `B608` exceptions document SQL identifiers selected exclusively from fixed internal lists; request values use bound parameters. This scan is not an authentication or application security audit.
+
+For dbt, create an **empty disposable** PostgreSQL database called `finops`. The fixture creates schemas and tables and is intended only for that database:
 
 ```bash
-make quickstart
+export DATABASE_URL='postgresql://postgres:postgres@localhost:5432/finops'
+export DBT_USER=postgres
+export DBT_PASSWORD=postgres
+export DBT_PROFILES_DIR="$PWD/dbt"
+python ci/load_fixture.py
+dbt deps --project-dir dbt
+dbt build --project-dir dbt
+dbt docs generate --project-dir dbt
 ```
 
-This will:
-- Build all containers
-- Generate synthetic demo data
-- Start all services
-- Initialize the database
+The fixture loads 48 deterministic synthetic transactions across two accounts and six months. It validates the dbt transformations, not a 100K end-to-end pipeline run. Repeating `dbt build` exercises existing incremental relations. The fixture loader itself requires an empty database.
 
-### 3. Access Services
-
-- **Airflow**: http://localhost:8080 (admin/admin)
-- **FastAPI**: http://localhost:8000/docs
-- **PostgreSQL**: localhost:5432
-- **DuckDB**: Available in `warehouse/duckdb/`
-
-### 4. Run the Pipeline
-
-1. Open Airflow at http://localhost:8080
-2. Navigate to DAGs → `fin_dataops`
-3. Click "Trigger DAG" to run the complete pipeline
-4. Monitor progress in the Airflow UI
-
-## 📈 Demo Data
-
-The platform includes a synthetic data generator that creates realistic financial transactions:
+## Generate the 100K dataset
 
 ```bash
-# Generate demo data manually
-make generate-data
-
-# Generate specific amounts
-python scripts/data_generator.py --transactions 100000 --institutions 5
+python ingest/synthetic_data_generator.py   --transactions 100000 --institutions 5   --start-date 2025-01-01 --end-date 2025-12-31   --output-file /tmp/finops-100k.csv
 ```
 
-**Demo Data Features:**
-- 50k+ realistic transactions across multiple institutions
-- Varied categories, amounts, and merchant patterns
-- Income and expense distributions
-- Seasonal and trend patterns
+This command was run and the output checked: 100,000 rows and 100,000 distinct transaction IDs. This establishes data generation only, not throughput or query performance. Generated records contain no real customer data. Keep outputs outside Git.
 
-## 🔧 Development
+There are two generators: `ingest/synthetic_data_generator.py` provides the CLI above and a richer schema; `ingest/scripts/data_generator.py` is the older generator referenced by the DAG. Their outputs are not interchangeable without schema mapping.
 
-### Local Development Setup
+## Architecture in the code
 
-```bash
-# Install dependencies
-make dev-setup
+```text
+CSV → extractors → PostgreSQL raw → dbt staging → dbt marts
+                                                  ↓
+                                  Airflow Parquet export → DuckDB
 
-# Start services
-docker-compose up -d
-
-# Run tests
-make test
-
-# View logs
-make logs
+Airflow orchestration | GE suite builders | FastAPI endpoints
 ```
 
-### Project Structure
+## Current limitations
 
-```
-├── api/                    # FastAPI application
-├── dags/                   # Airflow DAGs
-├── dbt/                    # dbt project files
-├── scripts/                # Data processing scripts
-├── notebooks/              # Jupyter notebooks
-├── warehouse/              # Data warehouse (Parquet, DuckDB)
-├── data/                   # Input data files
-├── docker-compose.yml      # Service orchestration
-├── Makefile               # Development commands
-└── README.md              # This file
-```
+- Docker Compose, Airflow execution, GE checkpoints, DuckDB loading, and API endpoints have not been validated by the CI workflow. Existing Compose mount paths, Airflow initialization/dependencies, API/model contracts, and SQLAlchemy runtime compatibility still need integration work before using the stack instructions in the legacy Makefile.
+- Staging currently supports USD only; the `supported_currency` dbt test rejects unsupported currencies. FX seeds do not establish tested multi-currency ingestion.
+- The existing raw schema has no balances. Net-worth models therefore produce no rows with this fixture; a passing null check on an empty model does not establish net-worth correctness.
+- Forecasts and anomalies are illustrative SQL heuristics, not validated financial models. Several older incremental marts use date watermarks and need a full refresh to incorporate late transactions.
+- Example local credentials appear in the source. Replace them for any actual deployment. Authentication, compliance, alert delivery, disaster recovery, and production readiness are not established.
+- No AWS infrastructure is deployed. AWS work belongs on a separate branch and needs its own Terraform, integration, and CI verification.
 
-### Adding New Extractors
+## Repository layout
 
-1. Create a new class inheriting from `BaseExtractor`
-2. Implement the `extract()` method
-3. Add institution-specific logic
-4. Update the main pipeline
-
-```python
-class NewBankExtractor(BaseExtractor):
-    def extract(self, file_path: str) -> pd.DataFrame:
-        # Custom extraction logic
-        pass
+```text
+.github/workflows/ci.yml    # Active repository-root workflow
+fndataops/
+  ci/                      # Disposable synthetic PostgreSQL fixture
+  ingest/                  # Generators and CSV extractors
+  orchestration/dags/      # Airflow DAG
+  dbt/                     # Models, seeds, tests, profiles
+  dq/                      # GE suite/checkpoint builders
+  api/                     # FastAPI source
+  tests/                   # Extractor/generator unit tests
+  docker-compose.yml       # Local stack definition (integration pending)
 ```
 
-### Custom dbt Models
-
-1. Add new models in `dbt/models/`
-2. Define tests in `dbt/tests/`
-3. Update `dbt_project.yml` configuration
-4. Run `dbt build` to test
-
-## 📊 Analytics & Insights
-
-### Available APIs
-
-- **`/balances`**: Current account balances
-- **`/cashflow?grain=month`**: Cashflow analysis by time period
-- **`/budget/variance?month=2024-01`**: Budget vs actual variance
-- **`/anomalies/recent`**: Recent anomalies and alerts
-- **`/forecast?months=3`**: Expense forecasts with confidence intervals
-- **`/analytics/performance`**: Performance metrics and benchmarks
-
-### Performance Benchmarks
-
-The platform demonstrates significant performance improvements:
-
-| Query Type | PostgreSQL | DuckDB | Speedup |
-|------------|------------|---------|---------|
-| Daily Cashflow | 45ms | 3ms | **15x** |
-| Category Analysis | 120ms | 8ms | **15x** |
-| Monthly Trends | 85ms | 5ms | **17x** |
-| Budget Variance | 200ms | 12ms | **17x** |
-
-*Results from 50k transaction dataset*
-
-### Anomaly Detection
-
-- **Statistical Outliers**: Z-score based detection
-- **Novel Merchants**: First-time vendor identification
-- **Amount Patterns**: Unusual spending patterns
-- **Temporal Anomalies**: Seasonal deviation detection
-
-### Forecasting
-
-- **Expense Projections**: 3-month rolling forecasts
-- **Category Trends**: Individual category predictions
-- **Confidence Intervals**: Uncertainty quantification
-- **Model Performance**: RMSE and MAPE tracking
-
-## 🔒 Privacy & Security
-
-### Data Protection
-
-- **PII Redaction**: Automatic redaction in logs
-- **Merchant Hashing**: Optional merchant name hashing
-- **Access Control**: Database user isolation
-- **Audit Logging**: Complete operation tracking
-
-### Security Features
-
-- **Environment Variables**: No hardcoded secrets
-- **Docker Secrets**: Secure credential management
-- **Network Isolation**: Container network segmentation
-- **Regular Updates**: Security patch management
-
-## 📋 Data Quality
-
-### Great Expectations Suites
-
-- **Completeness**: No nulls in critical fields
-- **Uniqueness**: No duplicate transaction IDs
-- **Validity**: Amount ranges, currency codes, dates
-- **Referential Integrity**: Foreign key validation
-- **Business Rules**: Accounting balance checks
-
-### Validation Pipeline
-
-1. **Pre-load Validation**: Raw data quality checks
-2. **Staging Validation**: Transformed data validation
-3. **Mart Validation**: Final output validation
-4. **Automated Alerts**: Slack/email notifications on failures
-
-## 🚀 Deployment
-
-### Production Considerations
-
-- **Scaling**: Horizontal scaling with load balancers
-- **Monitoring**: Prometheus + Grafana integration
-- **Backup**: Automated database and file backups
-- **Security**: SSL/TLS, authentication, authorization
-- **Compliance**: GDPR, SOC2, financial regulations
-
-### Environment Variables
-
-```bash
-# Required
-POSTGRES_PASSWORD=secure_password
-AIRFLOW__CORE__FERNET_KEY=generated_key
-
-# Optional
-SLACK_WEBHOOK_URL=webhook_url
-REDACT_PII=true
-MERCHANT_HASHING_ENABLED=true
-```
-
-## 📊 Monitoring & Observability
-
-### Metrics Collection
-
-- **Pipeline Metrics**: Rows processed, processing time
-- **Quality Metrics**: Validation failures, anomaly counts
-- **Performance Metrics**: Query response times, throughput
-- **Business Metrics**: Transaction volumes, category trends
-
-### Logging
-
-- **Structured Logs**: JSON format for easy parsing
-- **Log Levels**: DEBUG, INFO, WARNING, ERROR
-- **PII Redaction**: Automatic sensitive data masking
-- **Centralized Logging**: Aggregated log collection
-
-## 🧪 Testing
-
-### Test Suite
-
-```bash
-# Run all tests
-make test
-
-# Individual test categories
-make dbt-test      # dbt model tests
-make ge-validate   # Great Expectations validation
-```
-
-### Test Coverage
-
-- **Unit Tests**: Individual function testing
-- **Integration Tests**: End-to-end pipeline testing
-- **Data Quality Tests**: Automated validation testing
-- **Performance Tests**: Query performance benchmarking
-
-## 🤝 Contributing
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Run the full test suite
-5. Submit a pull request
-
-### Code Standards
-
-- **Python**: Black formatting, isort imports, flake8 linting
-- **SQL**: dbt style guide compliance
-- **Documentation**: Comprehensive docstrings and README updates
-- **Testing**: Minimum 80% test coverage
-
-## 📚 Documentation
-
-### Additional Resources
-
-- [API Documentation](http://localhost:8000/docs) - Interactive API docs
-- [dbt Documentation](http://localhost:8080/dbt) - Data model documentation
-- [Airflow Documentation](https://airflow.apache.org/docs/) - Workflow management
-- [Great Expectations](https://docs.greatexpectations.io/) - Data quality framework
-
-### Architecture Diagrams
-
-- [System Architecture](docs/architecture.md)
-- [Data Flow Diagrams](docs/data-flow.md)
-- [Database Schema](docs/schema.md)
-- [API Endpoints](docs/api.md)
-
+See [verification notes](docs/VERIFICATION.md) for validation scope and evidence.
