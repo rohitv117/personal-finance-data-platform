@@ -1,12 +1,18 @@
 {{
   config(
     materialized='incremental',
-    unique_key="merchant_norm || '_' || category_norm"
+    unique_key=['merchant_norm', 'category_norm']
   )
 }}
 
-WITH recurring_patterns AS (
-    SELECT 
+WITH transaction_intervals AS (
+    SELECT *, EXTRACT(EPOCH FROM (posted_at - LAG(posted_at) OVER (
+        PARTITION BY merchant_norm, category_norm ORDER BY posted_at
+    ))) / 86400 AS days_between
+    FROM {{ ref('stg_transactions') }}
+),
+recurring_patterns AS (
+    SELECT
         merchant_norm,
         category_norm,
         COUNT(*) as occurrence_count,
@@ -15,29 +21,23 @@ WITH recurring_patterns AS (
         MIN(posted_at) as first_seen,
         MAX(posted_at) as last_seen,
         -- Calculate frequency based on time between transactions
-        AVG(EXTRACT(EPOCH FROM (posted_at - LAG(posted_at) OVER (
-            PARTITION BY merchant_norm, category_norm 
-            ORDER BY posted_at
-        ))) / 86400) as avg_days_between
-    FROM {{ ref('stg_transactions') }}
+        AVG(days_between) as avg_days_between
+    FROM transaction_intervals
     WHERE is_recurring_guess = TRUE
-    {% if is_incremental() %}
-        AND posted_at > (SELECT MAX(last_seen) FROM {{ this }})
-    {% endif %}
     GROUP BY merchant_norm, category_norm
     HAVING COUNT(*) >= 2  -- At least 2 occurrences to be considered recurring
 ),
 
 recurring_status AS (
-    SELECT 
+    SELECT
         rp.*,
-        CASE 
+        CASE
             WHEN rp.avg_days_between <= 7 THEN 'Weekly'
             WHEN rp.avg_days_between <= 31 THEN 'Monthly'
             WHEN rp.avg_days_between <= 90 THEN 'Quarterly'
             ELSE 'Annual'
         END as frequency,
-        CASE 
+        CASE
             WHEN rp.last_seen >= CURRENT_DATE - INTERVAL '30 days' THEN 'Active'
             WHEN rp.last_seen >= CURRENT_DATE - INTERVAL '90 days' THEN 'Recent'
             ELSE 'Inactive'
@@ -47,7 +47,7 @@ recurring_status AS (
     FROM recurring_patterns rp
 )
 
-SELECT 
+SELECT
     merchant_norm,
     category_norm,
     occurrence_count,
@@ -60,4 +60,4 @@ SELECT
     status,
     CURRENT_TIMESTAMP as created_at
 FROM recurring_status
-ORDER BY occurrence_count DESC, average_amount DESC 
+ORDER BY occurrence_count DESC, average_amount DESC

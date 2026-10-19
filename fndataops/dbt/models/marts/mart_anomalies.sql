@@ -6,7 +6,7 @@
 }}
 
 WITH daily_category_stats AS (
-    SELECT 
+    SELECT
         DATE(posted_at) as date,
         category_norm,
         AVG(ABS(amount)) as avg_amount,
@@ -22,7 +22,7 @@ WITH daily_category_stats AS (
 ),
 
 anomaly_candidates AS (
-    SELECT 
+    SELECT
         t.txn_id,
         t.posted_at,
         t.merchant_norm,
@@ -33,13 +33,13 @@ anomaly_candidates AS (
         dcs.std_amount,
         dcs.transaction_count,
         -- Z-score calculation
-        CASE 
-            WHEN dcs.std_amount > 0 THEN 
+        CASE
+            WHEN dcs.std_amount > 0 THEN
                 (t.abs_amount - dcs.avg_amount) / dcs.std_amount
-            ELSE 0 
+            ELSE 0
         END as z_score,
         -- IQR calculation (simplified)
-        CASE 
+        CASE
             WHEN dcs.std_amount > 0 AND t.abs_amount > dcs.avg_amount + (2 * dcs.std_amount) THEN TRUE
             ELSE FALSE
         END as is_outlier
@@ -49,7 +49,7 @@ anomaly_candidates AS (
 ),
 
 novel_merchants AS (
-    SELECT 
+    SELECT
         t.txn_id,
         t.posted_at,
         t.merchant_norm,
@@ -73,23 +73,23 @@ novel_merchants AS (
 ),
 
 statistical_anomalies AS (
-    SELECT 
+    SELECT
         txn_id,
         posted_at,
         merchant_norm,
         category_norm,
         amount,
-        CASE 
+        CASE
             WHEN ABS(z_score) > 3 THEN 'High'
             WHEN ABS(z_score) > 2 THEN 'Medium'
             ELSE 'Low'
         END as severity,
         'Statistical Outlier' as anomaly_type,
-        CASE 
+        CASE
             WHEN z_score > 0 THEN 'Unusually high expense'
             ELSE 'Unusually low expense'
         END as driver,
-        CASE 
+        CASE
             WHEN z_score > 0 THEN 'Verify transaction amount and necessity'
             ELSE 'Check for missing transactions or refunds'
         END as remediation_hint
@@ -97,8 +97,8 @@ statistical_anomalies AS (
     WHERE is_outlier = TRUE OR ABS(z_score) > 2
 )
 
-SELECT 
-    nextval('marts.mart_anomalies_id_seq') as id,
+SELECT
+    MD5(txn_id || ':' || anomaly_type) as id,
     txn_id,
     anomaly_type,
     severity,
@@ -110,4 +110,4 @@ FROM (
     UNION ALL
     SELECT * FROM novel_merchants
 ) all_anomalies
-ORDER BY posted_at DESC 
+ORDER BY posted_at DESC

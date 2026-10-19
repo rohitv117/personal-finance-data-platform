@@ -26,11 +26,11 @@ models:
       +schema: marts
       fct_cashflow_daily:
         +materialized: incremental
-        +unique_key: "date || '_' || account_id"
+        +unique_key: ['date', 'account_id', 'source']
         +on_schema_change: "append_new_columns"
       fct_cashflow_monthly:
         +materialized: incremental
-        +unique_key: "month || '_' || account_id"
+        +unique_key: ['month', 'account_id', 'source']
         +on_schema_change: "append_new_columns"
       fct_net_worth:
         +materialized: incremental
@@ -38,11 +38,11 @@ models:
         +on_schema_change: "append_new_columns"
       fct_budget_vs_actual:
         +materialized: incremental
-        +unique_key: "month || '_' || category_name"
+        +unique_key: ['month', 'category_name']
         +on_schema_change: "append_new_columns"
       fct_recurring:
         +materialized: incremental
-        +unique_key: "merchant_name || '_' || account_id"
+        +unique_key: ['merchant_name', 'account_id']
         +on_schema_change: "append_new_columns"
       fct_anomalies:
         +materialized: incremental
@@ -50,7 +50,7 @@ models:
         +on_schema_change: "append_new_columns"
       fct_forecasts:
         +materialized: incremental
-        +unique_key: "forecast_date || '_' || forecast_type || '_' || category_name"
+        +unique_key: ['forecast_date', 'forecast_horizon', 'forecast_type', 'category_name']
         +on_schema_change: "append_new_columns"
 
 seeds:

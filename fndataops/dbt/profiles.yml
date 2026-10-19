@@ -1,12 +1,12 @@
-finops:
+fndataops:
   target: dev
   outputs:
     dev:
       type: postgres
-      host: localhost
-      user: finops_user
-      password: finops_password
-      port: 5432
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      user: "{{ env_var('DBT_USER', 'finops_user') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
       dbname: finops
       schema: public
       threads: 4
@@ -14,10 +14,10 @@ finops:
       search_path: public
     prod:
       type: postgres
-      host: localhost
-      user: finops_user
-      password: finops_password
-      port: 5432
+      host: "{{ env_var('DBT_HOST', 'localhost') }}"
+      user: "{{ env_var('DBT_USER', 'finops_user') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      port: "{{ env_var('DBT_PORT', '5432') | int }}"
       dbname: finops
       schema: public
       threads: 8

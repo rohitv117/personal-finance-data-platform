@@ -124,4 +124,15 @@ coverage.xml
 # Local development
 local/
 dev/
-staging/ 
+/staging/
+# Generated validation artifacts and local secrets
+.env.*
+!.env.example
+**/dbt/target/
+**/dbt/logs/
+**/dbt/dbt_packages/
+.mypy_cache/
+bandit-report.json
+
+.venv/
+**/dbt/.user.yml
