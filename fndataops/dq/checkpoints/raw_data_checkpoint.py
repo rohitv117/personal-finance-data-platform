@@ -6,9 +6,10 @@ from great_expectations.checkpoint import SimpleCheckpoint
 from great_expectations.core.batch import BatchRequest
 from great_expectations.data_context import DataContext
 
+
 def create_raw_data_checkpoint(context: DataContext):
     """Create checkpoint for raw data validation"""
-    
+
     checkpoint = SimpleCheckpoint(
         name="raw_data_checkpoint",
         data_context=context,
@@ -23,13 +24,13 @@ def create_raw_data_checkpoint(context: DataContext):
             }
         ],
     )
-    
+
     return checkpoint
 
 
 def create_staging_data_checkpoint(context: DataContext):
     """Create checkpoint for staging data validation"""
-    
+
     checkpoint = SimpleCheckpoint(
         name="staging_data_checkpoint",
         data_context=context,
@@ -44,13 +45,13 @@ def create_staging_data_checkpoint(context: DataContext):
             }
         ],
     )
-    
+
     return checkpoint
 
 
 def create_marts_data_checkpoint(context: DataContext):
     """Create checkpoint for marts data validation"""
-    
+
     checkpoint = SimpleCheckpoint(
         name="marts_data_checkpoint",
         data_context=context,
@@ -102,8 +103,8 @@ def create_marts_data_checkpoint(context: DataContext):
                     data_asset_name="marts.fct_forecasts",
                 ),
                 "expectation_suite_name": "marts_suite",
-            }
+            },
         ],
     )
-    
+
     return checkpoint

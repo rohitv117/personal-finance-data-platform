@@ -2,10 +2,11 @@
 Pydantic models for FastAPI application
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
-from datetime import datetime, date
+from datetime import date, datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class SeverityLevel(str, Enum):
@@ -234,7 +235,9 @@ class DateRangeRequest(BaseModel):
 
 
 class PeriodRequest(BaseModel):
-    period: str = Field(..., regex=r"^\d{4}-\d{2}$", description="Period in YYYY-MM format")
+    period: str = Field(
+        ..., regex=r"^\d{4}-\d{2}$", description="Period in YYYY-MM format"
+    )
 
 
 class CategoryRequest(BaseModel):
