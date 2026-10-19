@@ -29,6 +29,11 @@ The README records unverified Compose/Airflow/API/GE behavior, absent balance da
 
 Reviewed all four reachable commits and 58 unique historical file blobs. No `.env`, private key, or Parquet filenames were tracked; high-confidence AWS access-key, GitHub token, and private-key-header patterns had no matches. Tracked CSVs are reference seeds. Sample local passwords remain in source and are not evidence of a production credential. This targeted scan cannot prove the absence of every possible secret or identify the provenance of arbitrary data.
 
-## Publishing status
+## GitHub verification
 
-The repair branch could not be pushed: GitHub rejected the existing HTTPS credentials with an invalid username/token error. A fresh green Actions run, PR creation, status badge, repository description/topics, and profile pinning remain pending authenticated GitHub access. No AWS changes were made.
+Published branch: `codex/repair-ci-and-documentation`. Review: https://github.com/rohitv117/personal-finance-data-platform/pull/1 . Both push and PR workflows completed successfully at commit `f243dfb12d407b5bd9c61ec8c3a23b21eab1df0e`:
+
+- Push: https://github.com/rohitv117/personal-finance-data-platform/actions/runs/39326670108
+- PR: https://github.com/rohitv117/personal-finance-data-platform/actions/runs/39326745975
+
+All three jobs (test, dbt, security) passed on GitHub. This verifies Python 3.11, PostgreSQL 15, dependency installation, formatting/lint/type/unit checks, dbt build/tests/docs, and the Bandit medium/high gate. No AWS changes were made. The README badge tracks main; it will reflect the merged workflow after review.

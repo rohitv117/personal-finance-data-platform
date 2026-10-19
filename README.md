@@ -1,5 +1,7 @@
 # Personal Finance Data Platform (FinDataOps)
 
+[![CI (main)](https://github.com/rohitv117/personal-finance-data-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/rohitv117/personal-finance-data-platform/actions/workflows/ci.yml)
+
 A personal finance data engineering portfolio project using synthetic transactions, PostgreSQL, dbt, and Python. Airflow, Great Expectations, DuckDB export, and FastAPI components are included; the complete Docker Compose pipeline has not been verified end to end.
 
 Uses synthetic data generated with `--transactions 100000`.
@@ -11,7 +13,7 @@ Uses synthetic data generated with `--transactions 100000`.
 - Three reference seeds and 60 executable dbt data tests.
 - A nine-task Airflow DAG with year/month Parquet partitioning code. Task count describes the code, not a verified successful DAG run.
 - Three Great Expectations suite builders containing 56 expectation declarations. CI does not execute these suites; the DAG's `run_ge_suites` function currently performs SQL checks rather than invoking GE.
-- GitHub Actions configuration for Black, isort, fatal flake8 checks, mypy on ingestion scripts, pytest, dbt build/tests and docs against PostgreSQL 15, and Bandit scans. See [Actions](https://github.com/rohitv117/personal-finance-data-platform/actions).
+- GitHub Actions configuration for Black, isort, fatal flake8 checks, mypy on ingestion scripts, pytest, dbt build/tests and docs against PostgreSQL 15, and Bandit scans. Verified green on the repair branch in [this Actions run](https://github.com/rohitv117/personal-finance-data-platform/actions/runs/39326745975). The badge tracks `main` and updates after merge.
 
 There are no verified analytical speedup measurements, deployed AWS resources, OFX/QFX extractors, ClickHouse integration, or BI dashboards claimed here.
 
